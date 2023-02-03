@@ -3,15 +3,28 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
 
 	color "github.com/fatih/color"
+	"github.com/muesli/termenv"
 )
 
 const (
-	SquareFill  = "&#9632"
-	SquareEmpty = ""
+	width  = 75 + 2
+	height = 40 + 2
+)
+
+// ■ \u258 █
+var (
+	squareFill  = color.WhiteString("██")
+	squareEmpty = color.BlackString("██")
+
+	top         = "──"
+	left        = "│"
+	topLeft     = "╭"
+	topRigth    = "╮"
+	bottomLeft  = "╰"
+	bottomRigth = "╯"
 )
 
 type Cell struct {
@@ -48,39 +61,90 @@ func (b *Board) CheckNeighboursAlive(row, col int) int {
 	return neighboursAlive
 }
 
-func (b *Board) Draw() {
-	for _, col := range b.Data {
-		for _, row := range col {
-			if row.Status {
-				// ■ \u258 █
-				fmt.Printf("%s ", color.WhiteString("■"))
+func (b *Board) Draw(output *termenv.Output) {
+	for rowIdx, row := range b.Data {
+		for colIdx, col := range row {
+			if rowIdx == 0 || rowIdx == len(b.Data)-1 {
+				if rowIdx == 0 && colIdx == 0 {
+					fmt.Fprint(output, topLeft)
+					continue
+				}
+
+				if rowIdx == 0 && colIdx == len(row)-1 {
+					fmt.Fprint(output, topRigth)
+					continue
+				}
+
+				if rowIdx == len(b.Data)-1 && colIdx == 0 {
+					fmt.Fprint(output, bottomLeft)
+					continue
+				}
+
+				if rowIdx == len(b.Data)-1 && colIdx == len(row)-1 {
+					fmt.Fprint(output, bottomRigth)
+					continue
+				}
+
+				fmt.Fprint(output, top)
 				continue
 			}
-			fmt.Printf("%s ", color.BlackString("■"))
+
+			if colIdx == 0 || colIdx == len(row)-1 {
+				fmt.Fprint(output, left)
+				continue
+			}
+
+			if col.Status {
+				fmt.Fprint(output, squareFill)
+				continue
+			}
+
+			fmt.Fprint(output, squareEmpty)
 		}
 		fmt.Print("\n")
 	}
 }
 
-func ClearScreen() {
-	cmd := exec.Command("clear")
-	cmd.Stdout = os.Stdout
-	cmd.Run()
-}
-
-func NewBoard(size int) Board {
-	b := make([][]Cell, size+1)
+func NewBoard(_ int) Board {
+	b := make([][]Cell, height)
 	for i := range b {
-		c := make([]Cell, size+1)
+		c := make([]Cell, width)
 
 		for ci := range c {
 			c[ci] = Cell{}
 		}
 
-		if i == 4 {
-			c[3] = Cell{true, 1}
-			c[4] = Cell{true, 1}
-			c[5] = Cell{true, 1}
+		// Draw initial figure
+		if i == 15 {
+			c[38] = Cell{true, 1}
+		}
+		if i == 16 {
+			c[37] = Cell{true, 1}
+			c[38] = Cell{true, 1}
+			c[39] = Cell{true, 1}
+		}
+		if i == 17 {
+			c[36] = Cell{true, 1}
+			c[37] = Cell{true, 1}
+			c[38] = Cell{true, 1}
+			c[39] = Cell{true, 1}
+			c[40] = Cell{true, 1}
+		}
+
+		if i == 24 {
+			c[36] = Cell{true, 1}
+			c[37] = Cell{true, 1}
+			c[38] = Cell{true, 1}
+			c[39] = Cell{true, 1}
+			c[40] = Cell{true, 1}
+		}
+		if i == 25 {
+			c[37] = Cell{true, 1}
+			c[38] = Cell{true, 1}
+			c[39] = Cell{true, 1}
+		}
+		if i == 26 {
+			c[38] = Cell{true, 1}
 		}
 
 		b[i] = c
@@ -88,10 +152,10 @@ func NewBoard(size int) Board {
 	return Board{Data: b}
 }
 
-func NewBoardT(size int) Board {
-	b := make([][]Cell, size+1)
+func NewBoardT(_ int) Board {
+	b := make([][]Cell, height)
 	for i := range b {
-		c := make([]Cell, size+1)
+		c := make([]Cell, width)
 
 		for ci := range c {
 			c[ci] = Cell{}
@@ -103,26 +167,20 @@ func NewBoardT(size int) Board {
 }
 
 func main() {
-	board := NewBoard(8)
-	// cmd := exec.Command("clear")
-	// cmd.Stdout = os.Stdout
-
-	// fmt.Println("■ \u2580")
-
-	board.Draw()
-	// fmt.Println(color.BlackString("■"))
-	// fmt.Println("---------------------------------------------------- &#9632")
+	board := NewBoard(25)
+	output := termenv.NewOutput(os.Stdout)
+	output.AltScreen()
 
 	for {
-		tmpBoard := NewBoardT(8)
+		tmpBoard := NewBoardT(25)
 
 		for rIdx, row := range board.Data {
-			if rIdx == 0 || rIdx == 8 {
+			if rIdx == 0 || rIdx == len(board.Data)-1 {
 				continue
 			}
 
 			for cIdx, col := range row {
-				if cIdx == 0 || cIdx == 8 {
+				if cIdx == 0 || cIdx == len(row)-1 {
 					continue
 				}
 
@@ -141,12 +199,10 @@ func main() {
 				tmpBoard.Data[rIdx][cIdx] = Cell{false, 0}
 			}
 		}
-		board = tmpBoard
 
-		board.Draw()
-		time.Sleep(200 * time.Millisecond)
-		ClearScreen()
-		// fmt.Println("-------------------------------------------")
-		// cmd.Run()
+		board = tmpBoard
+		board.Draw(output)
+		time.Sleep(250 * time.Millisecond)
+		output.ClearScreen()
 	}
 }
