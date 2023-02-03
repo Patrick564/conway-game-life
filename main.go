@@ -2,7 +2,16 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"time"
+
+	color "github.com/fatih/color"
+)
+
+const (
+	SquareFill  = "&#9632"
+	SquareEmpty = ""
 )
 
 type Cell struct {
@@ -42,10 +51,21 @@ func (b *Board) CheckNeighboursAlive(row, col int) int {
 func (b *Board) Draw() {
 	for _, col := range b.Data {
 		for _, row := range col {
-			fmt.Printf("%d  ", row.Value)
+			if row.Status {
+				// ■ \u258 █
+				fmt.Printf("%s ", color.WhiteString("■"))
+				continue
+			}
+			fmt.Printf("%s ", color.BlackString("■"))
 		}
 		fmt.Print("\n")
 	}
+}
+
+func ClearScreen() {
+	cmd := exec.Command("clear")
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 }
 
 func NewBoard(size int) Board {
@@ -87,8 +107,11 @@ func main() {
 	// cmd := exec.Command("clear")
 	// cmd.Stdout = os.Stdout
 
+	// fmt.Println("■ \u2580")
+
 	board.Draw()
-	fmt.Println("----------------------------------------------------")
+	// fmt.Println(color.BlackString("■"))
+	// fmt.Println("---------------------------------------------------- &#9632")
 
 	for {
 		tmpBoard := NewBoardT(8)
@@ -120,9 +143,10 @@ func main() {
 		}
 		board = tmpBoard
 
-		time.Sleep(1 * time.Second)
 		board.Draw()
-		fmt.Println("-------------------------------------------")
+		time.Sleep(200 * time.Millisecond)
+		ClearScreen()
+		// fmt.Println("-------------------------------------------")
 		// cmd.Run()
 	}
 }
